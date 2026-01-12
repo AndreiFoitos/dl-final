@@ -3,6 +3,15 @@ import numpy as np
 import os
 import tarfile
 
+
+
+#Before doing anything, run: pip install -r requirements.txt
+#then download the CIFAR-10 dataset from https://www.cs.toronto.edu/~kriz/cifar.html
+#and place the cifar-10-python.tar.gz file in the data/ directory.
+# This script will extract and preprocess the data, saving both raw and normalized versions.
+
+
+
 # -------------------------
 # Configuration
 # -------------------------
