@@ -39,14 +39,14 @@ def load_data(preprocessed_dir, config=DEFAULT_CONFIG):
 
     # Choose raw vs normalized
     if config["use_normalized"]:
-        X_train = np.load(f"{preprocessed_dir}/X_train_norm.npy")
-        X_test = np.load(f"{preprocessed_dir}/X_test_norm.npy")
+        X_train = np.load(f"data/{preprocessed_dir}/X_train_norm.npy")
+        X_test = np.load(f"data/{preprocessed_dir}/X_test_norm.npy")
     else:
-        X_train = np.load(f"{preprocessed_dir}/X_train_raw.npy")
-        X_test = np.load(f"{preprocessed_dir}/X_test_raw.npy")
+        X_train = np.load(f"data/{preprocessed_dir}/X_train_raw.npy")
+        X_test = np.load(f"data/{preprocessed_dir}/X_test_raw.npy")
 
-    y_train = np.load(f"{preprocessed_dir}/y_train.npy")
-    y_test = np.load(f"{preprocessed_dir}/y_test.npy")
+    y_train = np.load(f"data/{preprocessed_dir}/y_train.npy")
+    y_test = np.load(f"data/{preprocessed_dir}/y_test.npy")
 
     return X_train, y_train, X_test, y_test
 

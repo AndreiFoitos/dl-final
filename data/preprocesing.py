@@ -82,6 +82,11 @@ X_test_raw  = X_test / 255.0
 X_train_norm = normalize(X_train)
 X_test_norm  = normalize(X_test)
 
+X_train_raw = X_train_raw.reshape(X_train_raw.shape[0], 3072, 1)
+X_test_raw  = X_test_raw.reshape(X_test_raw.shape[0], 3072, 1)
+X_train_norm = X_train_norm.reshape(X_train_norm.shape[0], 3072, 1)
+X_test_norm  = X_test_norm.reshape(X_test_norm.shape[0], 3072, 1)
+
 # -------------------------
 # Save
 # -------------------------

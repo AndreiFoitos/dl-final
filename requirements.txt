@@ -1,2 +1,3 @@
 numpy
-#its just numpy hehehe : )
+scikit-learn
+torch
