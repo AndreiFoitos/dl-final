@@ -8,7 +8,7 @@ from data.data_pipeline import create_dataloaders
 from RNN_model import RNN
 
 
-def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_clip=None, weight_scaler=None):
+def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_clip=None, weight_scaler=None, weight_decay=0):
     """
     Training loop for RNN model.
     
@@ -26,7 +26,7 @@ def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_c
                 param.data *= weight_scaler
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     train_losses = []
     grad_norms = []
     validation_losses = []
@@ -84,14 +84,14 @@ def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_c
         # validation_losses.append(val_loss)
 
         if torch.isnan(loss):
-
             break
 
     return train_losses, grad_norms, validation_losses, last_10_grads, mitigation
 
 if __name__ == '__main__':
     #For exploding gradiensts set batch_size to 64 and don't apply clipping
-    #For mitigation method for exploding gradiensts set gradient_clipping to 0.5 and set batch_size to 32
+    #For mitigation method for exploding gradiensts set gradient_clipping to 0.5 and set batch_size to 32 
+    #or gradient_clipping to 0.5 and weight_decay to 1e-2
 
     DATA_CONFIG = {
     "use_normalized": False,     
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     model = RNN(input_size=1, hidden_size=256, num_layers=3, nonlinearity='relu', num_classes=10).to(device)
 
-    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, learning_rate=1)
+    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, learning_rate=1, gradient_clip=0.5, weight_decay=0
 
     epochs = np.arange(0, len(train_losses))
 
