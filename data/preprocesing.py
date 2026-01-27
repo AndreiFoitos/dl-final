@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 import os
 import tarfile
+import shutil
 
 
 
@@ -9,15 +10,16 @@ import tarfile
 #then download the CIFAR-10 dataset from https://www.cs.toronto.edu/~kriz/cifar.html
 #and place the cifar-10-python.tar.gz file in the data/ directory.
 # This script will extract and preprocess the data, saving both raw and normalized versions.
+# Run this script from the project root directory.
 
 
 
 # -------------------------
 # Configuration
 # -------------------------
-TAR_FILE = "cifar-10-python.tar.gz"
-CIFAR_DIR = "cifar-10-batches-py"
-SAVE_DIR = "preprocessed"
+TAR_FILE = "data/cifar-10-python.tar.gz"
+CIFAR_DIR = "data/cifar-10-batches-py"
+SAVE_DIR = "data/preprocessed"
 
 # CIFAR-10 mean/std (RGB)
 CIFAR10_MEAN = np.array([0.4914, 0.4822, 0.4465], dtype=np.float32)
@@ -26,10 +28,16 @@ CIFAR10_STD  = np.array([0.2470, 0.2435, 0.2616], dtype=np.float32)
 # -------------------------
 # Extract dataset
 # -------------------------
+# Check if dataset exists in wrong location (project root) and move it
+if os.path.exists("cifar-10-batches-py") and not os.path.exists(CIFAR_DIR):
+    print("Moving CIFAR-10 dataset to data/ directory...")
+    shutil.move("cifar-10-batches-py", CIFAR_DIR)
+    print("Move complete.")
+
 if not os.path.exists(CIFAR_DIR):
     print("Extracting CIFAR-10...")
     with tarfile.open(TAR_FILE, "r:gz") as tar:
-        tar.extractall()
+        tar.extractall("data/")
     print("Extraction done.")
 
 # -------------------------
