@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     model = RNN(input_size=1, hidden_size=256, num_layers=3, nonlinearity='relu', num_classes=10).to(device)
 
-    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, learning_rate=1, gradient_clip=0.5, weight_decay=0
+    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, learning_rate=1, gradient_clip=0.5, weight_decay=0)
 
     epochs = np.arange(0, len(train_losses))
 
