@@ -7,9 +7,7 @@ This directory contains files for exploring vanishing gradients in RNNs and thei
 ### `RNN_vanishing.py`
 Contains model implementations with various mitigation strategies:
 - **VanillaRNN**: Standard RNN (prone to vanishing gradients with deep networks and tanh activation)
-- **LSTM_Model**: LSTM with gating mechanisms to mitigate vanishing gradients
-- **GRU_Model**: GRU (simpler than LSTM, also mitigates vanishing gradients)
-- **ResidualRNN**: RNN with residual connections
+- **ResidualRNN**: RNN with residual connections (mitigation)
 
 Initialization methods:
 - **Xavier/Glorot initialization**: Good default for RNNs
@@ -38,10 +36,7 @@ python training_vanishing.py
 This will run multiple experiments comparing:
 1. Vanilla RNN with tanh (no mitigation) - shows vanishing gradients
 2. Vanilla RNN with Xavier initialization - mitigation via better init
-3. LSTM (no mitigation) - gated architecture helps
-4. LSTM with Xavier initialization - combines gating + good init
-5. GRU with Xavier initialization - simpler gated architecture
-6. Residual RNN with ReLU - residual connections help
+3. Residual RNN with ReLU - residual connections help
 
 ### Custom Experiments
 
@@ -60,7 +55,6 @@ Modify the `experiments` list in `training_vanishing.py` to:
 - Long sequences
 
 **Mitigation techniques:**
-- Use LSTM/GRU instead of vanilla RNN
 - Better initialization (Xavier/He)
 - Residual connections
 - ReLU activation (less prone to vanishing than tanh)

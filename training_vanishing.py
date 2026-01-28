@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 from data.data_pipeline import create_dataloaders
-from RNN_vanishing import VanillaRNN, LSTM_Model, GRU_Model, ResidualRNN
+from RNN_vanishing import VanillaRNN, ResidualRNN
 
 
 def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01, gradient_clip=None, 
@@ -13,7 +13,7 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
     """
     Training loop for exploring vanishing gradients.
     
-    :param model: RNN model (VanillaRNN, LSTM, GRU, or ResidualRNN)
+    :param model: RNN model (VanillaRNN or ResidualRNN)
     :param train_loader: Training data
     :param device: Device to run training on (cuda/cpu)
     :param num_epochs: Number of epochs
@@ -21,7 +21,7 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
     :param gradient_clip: Maximum gradient norm (for clipping)
     :param gradient_clip_min: Minimum gradient norm threshold (to detect vanishing)
     :param weight_decay: Weight decay for regularization
-    :param model_type: Type of model ('vanilla', 'lstm', 'gru', 'residual')
+    :param model_type: Type of model ('vanilla', 'residual')
     """
     
     criterion = nn.CrossEntropyLoss()
@@ -239,33 +239,6 @@ if __name__ == '__main__':
                            'nonlinearity': 'tanh', 'num_classes': 10, 'init_method': 'xavier'},
             'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
             'model_type': 'vanilla',
-            'mitigation': 'xavier_init'
-        },
-        {
-            'name': 'lstm_no_mitigation',
-            'model_class': LSTM_Model,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20,
-                           'num_classes': 10, 'init_method': 'default'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
-            'model_type': 'lstm',
-            'mitigation': 'no_mitigation'
-        },
-        {
-            'name': 'lstm_xavier',
-            'model_class': LSTM_Model,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20,
-                           'num_classes': 10, 'init_method': 'xavier'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
-            'model_type': 'lstm',
-            'mitigation': 'xavier_init'
-        },
-        {
-            'name': 'gru_xavier',
-            'model_class': GRU_Model,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20,
-                           'num_classes': 10, 'init_method': 'xavier'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
-            'model_type': 'gru',
             'mitigation': 'xavier_init'
         },
         {
