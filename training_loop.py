@@ -5,28 +5,32 @@ import matplotlib.pyplot as plt
 import math
 
 from data.data_pipeline import create_dataloaders
-from RNN_model import RNN
+from CNN_model import CNN
 
 
-def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_clip=None, weight_scaler=None, weight_decay=0):
+def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1, mitigation_on=False):
     """
-    Training loop for RNN model.
+    Training loop for CNN model.
     
-    :param model: RNN model.
+    :param model: CNN model.
     :param train_loader: Training data.
     :param num_epochs: Number of epochs model is trained.
     :param learning_rate: Learning rate used for training.
-    :param gradient_clip: Value when gradients are clipped. If None gradients don't get clipped.
-    :param weight_scaler: Scaling value for the weights, if None weigths are not getting scaled.
+    :param mitigation_on: if False training loop will results in exploding gradients
+    else will result in mitigtation, will clip gradients, add weight_decay and learning rate decay with scheduler.
+    This will result in gradient and loss going down over time.
     """
 
-    if weight_scaler != None:
-        for name, param in model.named_parameters():
-            if 'weight_hh' in name:
-                param.data *= weight_scaler
+    if mitigation_on:
+        gradient_clip = 0.5
+        weight_decay = 1e-4
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    if not mitigation_on:
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    if mitigation_on:
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.001)
     train_losses = []
     grad_norms = []
     validation_losses = []
@@ -45,7 +49,7 @@ def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_c
             optimizer.zero_grad()
             loss.backward()
 
-            if gradient_clip != None:
+            if mitigation_on:
                 mitigation = 'mitigation'
                 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=gradient_clip)
             else:
@@ -66,10 +70,16 @@ def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_c
         train_losses.append(train_loss)
                 
         grad_norms.append(np.mean(epoch_grad_norms))
-        print(f"Epoch {epoch}: Loss={loss:.4f}, GradNorm={np.mean(epoch_grad_norms):.2e}")
+        if mitigation_on:
+            scheduler.step()
 
+            last_lr = scheduler.get_last_lr()
+            print(last_lr)
 
-        #for if you want to use val
+        if torch.isnan(loss):
+            break
+
+        # #for if you want to use val
         # model.eval()
         # val_loss = 0
         # with torch.no_grad():
@@ -82,16 +92,14 @@ def train_model(model, train_loader, num_epochs=100, learning_rate=1, gradient_c
         
         # val_loss /= len(val_loader)
         # validation_losses.append(val_loss)
-
-        if torch.isnan(loss):
-            break
+        
+        print(f"Epoch {epoch}: Loss={train_loss:.4f}, GradNorm={np.mean(epoch_grad_norms):.2e}")
 
     return train_losses, grad_norms, validation_losses, last_10_grads, mitigation
 
+
 if __name__ == '__main__':
-    #For exploding gradiensts set batch_size to 64 and don't apply clipping
-    #For mitigation method for exploding gradiensts set gradient_clipping to 0.5 and set batch_size to 32 
-    #or gradient_clipping to 0.5 and weight_decay to 1e-2
+    #For exploding set mitigation_on to False and for mitigation set mitigation on to True
 
     DATA_CONFIG = {
     "use_normalized": False,     
@@ -103,6 +111,7 @@ if __name__ == '__main__':
     "batch_size":64,
     "shuffle": True,
     }
+
 
     train_loader, val_loader, test_loader = create_dataloaders(
         preprocessed_dir="preprocessed",
@@ -116,9 +125,10 @@ if __name__ == '__main__':
 
     print(f"Device: {device}")
 
-    model = RNN(input_size=1, hidden_size=256, num_layers=3, nonlinearity='relu', num_classes=10).to(device)
+    model = CNN(num_conv_layers=5, base_channels=32, num_classes=10).to(device)
 
-    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, learning_rate=1, gradient_clip=0.5, weight_decay=0)
+    train_losses, grad_norms, validation_losses, last_10_grads, mitigation = train_model(model, train_loader, val_loader, 
+                                                                                         learning_rate=0.35, mitigation_on=True)
 
     epochs = np.arange(0, len(train_losses))
 
@@ -147,4 +157,3 @@ if __name__ == '__main__':
     plt.ylabel('Gradient norm')
     plt.title('Gradient norm over last 10 bathes')
     plt.savefig(f'plots/grad_norms_last_10_{mitigation}.png', dpi=150)
-
