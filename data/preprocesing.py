@@ -4,16 +4,6 @@ import os
 import tarfile
 import shutil
 
-
-
-#Before doing anything, run: pip install -r requirements.txt
-#then download the CIFAR-10 dataset from https://www.cs.toronto.edu/~kriz/cifar.html
-#and place the cifar-10-python.tar.gz file in the data/ directory.
-# This script will extract and preprocess the data, saving both raw and normalized versions.
-# Run this script from the project root directory.
-
-
-
 # -------------------------
 # Configuration
 # -------------------------
@@ -28,7 +18,6 @@ CIFAR10_STD  = np.array([0.2470, 0.2435, 0.2616], dtype=np.float32)
 # -------------------------
 # Extract dataset
 # -------------------------
-# Check if dataset exists in wrong location (project root) and move it
 if os.path.exists("cifar-10-batches-py") and not os.path.exists(CIFAR_DIR):
     print("Moving CIFAR-10 dataset to data/ directory...")
     shutil.move("cifar-10-batches-py", CIFAR_DIR)
@@ -53,15 +42,6 @@ def load_batch(file):
     y = np.array(batch[b"labels"])
     return X, y
 
-def normalize(X):
-    """ Normalize flattened CIFAR-10 images """
-    X = X.reshape(-1, 3, 32, 32)
-    X = X / 255.0
-    mean = CIFAR10_MEAN.reshape(1, 3, 1, 1)
-    std = CIFAR10_STD.reshape(1, 3, 1, 1)
-    X = (X - mean) / std
-    return X.reshape(X.shape[0], -1)
-
 # -------------------------
 # Load training data
 # -------------------------
@@ -82,40 +62,55 @@ X_test, y_test = load_batch(os.path.join(CIFAR_DIR, "test_batch"))
 X_test = X_test.astype(np.float32)
 
 # -------------------------
-# Create raw and normalized versions
+# Preprocessing for CNNs (PyTorch)
 # -------------------------
+
+# Reshape to (N, C, H, W)
+X_train = X_train.reshape(-1, 3, 32, 32)
+X_test  = X_test.reshape(-1, 3, 32, 32)
+
+# Raw images [0,1]
 X_train_raw = X_train / 255.0
-X_test_raw  = X_test / 255.0
+X_test_raw  = X_test  / 255.0
 
-X_train_norm = normalize(X_train)
-X_test_norm  = normalize(X_test)
+# Normalized images (zero mean, unit variance)
+mean = CIFAR10_MEAN.reshape(1, 3, 1, 1)
+std  = CIFAR10_STD.reshape(1, 3, 1, 1)
 
-X_train_raw = X_train_raw.reshape(X_train_raw.shape[0], 3072, 1)
-X_test_raw  = X_test_raw.reshape(X_test_raw.shape[0], 3072, 1)
-X_train_norm = X_train_norm.reshape(X_train_norm.shape[0], 3072, 1)
-X_test_norm  = X_test_norm.reshape(X_test_norm.shape[0], 3072, 1)
+X_train_norm = (X_train_raw - mean) / std
+X_test_norm  = (X_test_raw  - mean) / std
 
 # -------------------------
-# Save
+# Save preprocessed data
 # -------------------------
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-np.save(os.path.join(SAVE_DIR, "X_train_raw.npy"), X_train_raw)
-np.save(os.path.join(SAVE_DIR, "X_test_raw.npy"), X_test_raw)
-
-np.save(os.path.join(SAVE_DIR, "X_train_norm.npy"), X_train_norm)
-np.save(os.path.join(SAVE_DIR, "X_test_norm.npy"), X_test_norm)
-
+np.save(os.path.join(SAVE_DIR, "X_train_raw_cnn.npy"), X_train_raw)
+np.save(os.path.join(SAVE_DIR, "X_test_raw_cnn.npy"), X_test_raw)
+np.save(os.path.join(SAVE_DIR, "X_train_norm_cnn.npy"), X_train_norm)
+np.save(os.path.join(SAVE_DIR, "X_test_norm_cnn.npy"), X_test_norm)
 np.save(os.path.join(SAVE_DIR, "y_train.npy"), y_train)
 np.save(os.path.join(SAVE_DIR, "y_test.npy"), y_test)
 
+# -------------------------
+# Print shapes
+# -------------------------
 print("Preprocessing complete.")
 print("Raw train shape:", X_train_raw.shape)
 print("Normalized train shape:", X_train_norm.shape)
 print("Raw test shape:", X_test_raw.shape)
 print("Normalized test shape:", X_test_norm.shape)
 
-# Phase 1 — Gradient Instability use X_train_raw.npy
-# Phase 2 — Advanced Optimization use X_train_norm.npy
 
-#I guess normlization of the data can be one of the mitigation techniques for gradient instability?
+
+"""
+
+use example:
+import torch
+from torch.utils.data import TensorDataset, DataLoader
+
+X_train = torch.from_numpy(np.load("data/preprocessed/X_train_norm_cnn.npy")).float()
+y_train = torch.from_numpy(np.load("data/preprocessed/y_train.npy")).long()
+
+train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
+"""
