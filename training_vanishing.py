@@ -8,8 +8,19 @@ from data.data_pipeline import create_dataloaders
 from RNN_vanishing import VanillaRNN, ResidualRNN
 
 
-def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01, gradient_clip=None, 
-                gradient_clip_min=None, weight_decay=0, model_type='vanilla'):
+def train_model(
+    model,
+    train_loader,
+    device,
+    num_epochs=100,
+    learning_rate=0.01,
+    gradient_clip=None,
+    gradient_clip_min=None,
+    weight_decay=0,
+    model_type='vanilla',
+    vanishing_threshold=None,
+    vanishing_patience=3,
+):
     """
     Training loop for exploring vanishing gradients.
     
@@ -22,6 +33,10 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
     :param gradient_clip_min: Minimum gradient norm threshold (to detect vanishing)
     :param weight_decay: Weight decay for regularization
     :param model_type: Type of model ('vanilla', 'residual')
+    :param vanishing_threshold: If not None, early-stop when mean grad norm drops
+                                below this value for vanishing_patience epochs.
+    :param vanishing_patience: Number of consecutive low-gradient epochs required
+                               before early stopping is triggered.
     """
     
     criterion = nn.CrossEntropyLoss()
@@ -34,6 +49,7 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
     
     # Track minimum gradient norms to detect vanishing
     min_grad_norms = []
+    low_grad_epochs = 0  # for early stopping when gradients are very small
     
     for epoch in range(num_epochs):
         model.train()
@@ -44,9 +60,6 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
         
         print(f"  Starting epoch {epoch}, processing {len(train_loader)} batches...")
         for batch_idx, (sequences, targets) in enumerate(train_loader):
-            if batch_idx % 10 == 0:
-                print(f"    Processing batch {batch_idx}/{len(train_loader)}")
-            
             sequences = sequences.to(device)
             targets = targets.to(device)
             
@@ -91,6 +104,9 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
             
             train_loss += loss.item()
             
+            # Print progress for every batch including gradient norm
+            print(f"    Epoch {epoch} - batch {batch_idx + 1}/{len(train_loader)} | grad_norm={total_grad_norm.item():.2e}")
+            
             if torch.isnan(loss):
                 print(f"NaN at epoch {epoch}, batch {batch_idx}!")
                 break
@@ -99,18 +115,42 @@ def train_model(model, train_loader, device, num_epochs=100, learning_rate=0.01,
         train_loss /= len(train_loader)
         train_losses.append(train_loss)
         
-        grad_norms.append(np.mean(epoch_grad_norms))
-        min_grad_norms.append(np.mean(epoch_min_grad_norms))
+        mean_epoch_grad = np.mean(epoch_grad_norms)
+        grad_norms.append(mean_epoch_grad)
+        mean_min_grad = np.mean(epoch_min_grad_norms)
+        min_grad_norms.append(mean_min_grad)
         
         # Average gradients per layer
         avg_grads_per_layer = {name: np.mean(vals) for name, vals in epoch_grads_per_layer.items()}
         grad_norms_per_layer.append(avg_grads_per_layer)
         
-        print(f"Epoch {epoch}: Loss={train_loss:.4f}, GradNorm={np.mean(epoch_grad_norms):.2e}, "
-              f"MinLayerGrad={np.mean(epoch_min_grad_norms):.2e}")
+        print(
+            f"Epoch {epoch}: Loss={train_loss:.4f}, "
+            f"GradNorm={mean_epoch_grad:.2e}, "
+            f"MinLayerGrad={mean_min_grad:.2e}"
+        )
         
         if torch.isnan(loss):
             break
+
+        # Early stopping based on vanishing gradients
+        if vanishing_threshold is not None:
+            if mean_epoch_grad < vanishing_threshold:
+                low_grad_epochs += 1
+                print(
+                    f"  Mean grad {mean_epoch_grad:.2e} < threshold "
+                    f"{vanishing_threshold:.2e} "
+                    f"({low_grad_epochs}/{vanishing_patience} low-grad epochs)"
+                )
+            else:
+                low_grad_epochs = 0
+
+            if low_grad_epochs >= vanishing_patience:
+                print(
+                    f"Early stopping: gradient below {vanishing_threshold:.2e} "
+                    f"for {vanishing_patience} consecutive epochs."
+                )
+                break
     
     return train_losses, grad_norms, min_grad_norms, grad_norms_per_layer, validation_losses, last_10_grads
 
@@ -122,13 +162,12 @@ def plot_vanishing_gradients(train_losses, grad_norms, min_grad_norms, grad_norm
     os.makedirs(save_dir, exist_ok=True)
     epochs = np.arange(0, len(train_losses))
     
-    # Plot 1: Training loss
+    # Plot 1: Training loss (linear scale to match exploding-gradient plots)
     plt.figure(figsize=(10, 6))
     plt.plot(epochs, train_losses, marker='o', markersize=3)
     plt.xlabel('Epoch')
     plt.ylabel('Training Loss')
     plt.title(f'Training Loss - {model_type.upper()} ({mitigation_type})')
-    plt.yscale('log')  # Log scale to see slow learning
     plt.grid(True, alpha=0.3)
     plt.savefig(f'{save_dir}/training_loss_{model_type}_{mitigation_type}.png', dpi=150)
     plt.close()
@@ -226,27 +265,63 @@ if __name__ == '__main__':
         {
             'name': 'vanilla_tanh_no_mitigation',
             'model_class': VanillaRNN,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20, 
-                           'nonlinearity': 'tanh', 'num_classes': 10, 'init_method': 'default'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
+            'model_kwargs': {
+                'input_size': 1,
+                'hidden_size': 256,
+                'num_layers': 10,
+                'nonlinearity': 'tanh',
+                'num_classes': 10,
+                'init_method': 'default',
+            },
+            'train_kwargs': {
+                'learning_rate': 0.01,
+                'gradient_clip': None,
+                'gradient_clip_min': None,
+                'vanishing_threshold': 1e-4,
+                'vanishing_patience': 3,
+            },
             'model_type': 'vanilla',
             'mitigation': 'no_mitigation'
         },
         {
             'name': 'vanilla_tanh_xavier',
             'model_class': VanillaRNN,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20,
-                           'nonlinearity': 'tanh', 'num_classes': 10, 'init_method': 'xavier'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
+            'model_kwargs': {
+                'input_size': 1,
+                'hidden_size': 256,
+                'num_layers': 20,
+                'nonlinearity': 'tanh',
+                'num_classes': 10,
+                'init_method': 'xavier',
+            },
+            'train_kwargs': {
+                'learning_rate': 0.01,
+                'gradient_clip': None,
+                'gradient_clip_min': None,
+                'vanishing_threshold': 1e-4,
+                'vanishing_patience': 3,
+            },
             'model_type': 'vanilla',
             'mitigation': 'xavier_init'
         },
         {
             'name': 'residual_relu',
             'model_class': ResidualRNN,
-            'model_kwargs': {'input_size': 1, 'hidden_size': 256, 'num_layers': 20,
-                           'nonlinearity': 'relu', 'num_classes': 10, 'init_method': 'xavier'},
-            'train_kwargs': {'learning_rate': 0.01, 'gradient_clip': None, 'gradient_clip_min': None},
+            'model_kwargs': {
+                'input_size': 1,
+                'hidden_size': 256,
+                'num_layers': 20,
+                'nonlinearity': 'relu',
+                'num_classes': 10,
+                'init_method': 'xavier',
+            },
+            'train_kwargs': {
+                'learning_rate': 0.01,
+                'gradient_clip': None,
+                'gradient_clip_min': None,
+                'vanishing_threshold': 1e-4,
+                'vanishing_patience': 3,
+            },
             'model_type': 'residual',
             'mitigation': 'residual_connections'
         },
@@ -257,6 +332,8 @@ if __name__ == '__main__':
         print(f"\n{'='*60}")
         print(f"Running experiment: {exp['name']}")
         print(f"{'='*60}")
+        print("  Model config:", exp['model_kwargs'])
+        print("  Training config:", exp['train_kwargs'])
         
         print(f"  Creating model: {exp['name']}")
         model = exp['model_class'](**exp['model_kwargs']).to(device)
