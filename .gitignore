@@ -10,7 +10,7 @@ data/cifar-10-python.tar.gz
 old-rnn/
 
 # Plots
-plots/
+# plots/
 
 # pychache
 __pycache__/

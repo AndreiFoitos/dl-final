@@ -319,7 +319,7 @@ if __name__ == '__main__':
                 "num_classes": 10
             },
             "train_kwargs": {
-                "learning_rate": 0.35, # High LR to provoke explosion
+                "learning_rate": 0.35,
                 "mitigation_on": False
             }
         },
@@ -332,7 +332,7 @@ if __name__ == '__main__':
         #         "num_classes": 10
         #     },
         #     "train_kwargs": {
-        #         "learning_rate": 0.1, # Lower LR for mitigation
+        #         "learning_rate": 0.35,
         #         "mitigation_on": True
         #     }
         # }
@@ -352,7 +352,7 @@ if __name__ == '__main__':
             train_loader, 
             val_loader, 
             device,
-            num_epochs=20,
+            num_epochs=100,
             **exp["train_kwargs"]
         )
 
