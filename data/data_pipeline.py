@@ -3,27 +3,22 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.decomposition import PCA
 
-# -------------------------
-# Configuration Defaults
-# -------------------------
 DEFAULT_CONFIG = {
     "use_normalized": True,      # raw vs normalized data
     "add_noise": False,          # Gaussian noise
     "noise_std": 0.05,
-    "use_pca": False,            # Optional PCA
-    "pca_components": 512,
-    "val_split": 0.1,
-    "batch_size": 128,
-    "shuffle": True,
+    "use_pca": False,            # optional PCA for mitigation
+    "pca_components": 512,       # number of PCA components for mitigation
+    "val_split": 0.1,            # validation split
+    "batch_size": 128,           # batch size for training
+    "shuffle": True,             # shuffle the data for training
 }
 
 
-# -------------------------
-# Feature engineering
-# -------------------------
 def add_gaussian_noise(X, std):
     noise = np.random.normal(0, std, size=X.shape).astype(np.float32)
     return X + noise
+
 
 def apply_pca(X_train, X_val, X_test, n_components):
     pca = PCA(n_components=n_components, whiten=True)
@@ -32,12 +27,8 @@ def apply_pca(X_train, X_val, X_test, n_components):
     X_test = pca.transform(X_test)
     return X_train, X_val, X_test
 
-# -------------------------
-# Load data
-# -------------------------
-def load_data(preprocessed_dir, config=DEFAULT_CONFIG):
 
-    # Choose raw vs normalized
+def load_data(preprocessed_dir, config=DEFAULT_CONFIG):
     if config["use_normalized"]:
         X_train = np.load(f"data/{preprocessed_dir}/X_train_norm_cnn.npy")
         X_test = np.load(f"data/{preprocessed_dir}/X_test_norm_cnn.npy")
@@ -50,9 +41,7 @@ def load_data(preprocessed_dir, config=DEFAULT_CONFIG):
 
     return X_train, y_train, X_test, y_test
 
-# -------------------------
-# Train / validation split
-# -------------------------
+
 def train_val_split(X, y, val_split):
     N = X.shape[0]
     idx = np.random.permutation(N)
@@ -68,18 +57,14 @@ def train_val_split(X, y, val_split):
         y[val_idx],
     )
 
-# -------------------------
-# Main data pipeline
-# -------------------------
+
 def create_dataloaders(preprocessed_dir, config=DEFAULT_CONFIG):
     X_train, y_train, X_test, y_test = load_data(preprocessed_dir, config)
 
-    # Train / validation split
     X_train, y_train, X_val, y_val = train_val_split(
         X_train, y_train, config["val_split"]
     )
 
-    # Feature engineering
     if config["add_noise"]:
         X_train = add_gaussian_noise(X_train, config["noise_std"])
 
@@ -88,7 +73,6 @@ def create_dataloaders(preprocessed_dir, config=DEFAULT_CONFIG):
             X_train, X_val, X_test, config["pca_components"]
         )
 
-    # Convert to PyTorch tensors
     X_train = torch.from_numpy(X_train).float()
     y_train = torch.from_numpy(y_train).long()
 
@@ -98,34 +82,29 @@ def create_dataloaders(preprocessed_dir, config=DEFAULT_CONFIG):
     X_test = torch.from_numpy(X_test).float()
     y_test = torch.from_numpy(y_test).long()
 
-    # Datasets
     train_ds = TensorDataset(X_train, y_train)
     val_ds = TensorDataset(X_val, y_val)
     test_ds = TensorDataset(X_test, y_test)
 
-    # Dataloaders
     train_loader = DataLoader(
         train_ds,
         batch_size=config["batch_size"],
-        shuffle=config["shuffle"]
+        shuffle=config["shuffle"],
     )
 
     val_loader = DataLoader(
         val_ds,
         batch_size=config["batch_size"],
-        shuffle=False
+        shuffle=False,
     )
 
     test_loader = DataLoader(
         test_ds,
         batch_size=config["batch_size"],
-        shuffle=False
+        shuffle=False,
     )
 
     return train_loader, val_loader, test_loader
-
-
-
 
 
 """ this is how you load the data in your training script:
