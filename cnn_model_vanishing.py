@@ -22,7 +22,7 @@ def init_weights_he(module: nn.Module) -> None:
 def init_weights_small(module: nn.Module) -> None:
     """Very small initialization to promote vanishing gradients"""
     if isinstance(module, nn.Linear) or isinstance(module, nn.Conv2d):
-        init.normal_(module.weight, mean=0.0, std=0.0001)
+        init.normal_(module.weight, mean=0.0, std=0.1)
         if module.bias is not None:
             init.zeros_(module.bias)
 
@@ -78,7 +78,7 @@ class VanishingCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-
+# Used for mitigation of vanishing gradients
 class ResidualCNN(nn.Module):
     """
     CNN with residual connections and ReLU activations to mitigate vanishing gradients.
@@ -126,7 +126,6 @@ class ResidualCNN(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-
 
 class ResidualBlock(nn.Module):
     def __init__(
