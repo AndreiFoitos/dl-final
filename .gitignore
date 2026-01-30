@@ -10,6 +10,7 @@ dl/
 data/cifar-10-batches-py/
 data/preprocessed/
 data/cifar-10-python.tar.gz
+old-rnn/
 
 # ======================
 # pychache
