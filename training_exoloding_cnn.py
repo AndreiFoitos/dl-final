@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 
 from data.data_pipeline import create_dataloaders
-from CNN_model import CNN
+from cnn_model_exploding import CNN
 
 
 def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1, mitigation_on=False):
@@ -26,11 +26,14 @@ def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1
         weight_decay = 1e-4
 
     criterion = nn.CrossEntropyLoss()
+
     if not mitigation_on:
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+        
     if mitigation_on:
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.001)
+        
     train_losses = []
     grad_norms = []
     validation_losses = []
@@ -39,6 +42,7 @@ def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1
         model.train()
         train_loss = 0
         epoch_grad_norms = []
+
         for batch_idx, (sequences, targets) in enumerate(train_loader):
             sequences = sequences.to(device)
             targets = targets.to(device)
@@ -70,6 +74,7 @@ def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1
         train_losses.append(train_loss)
                 
         grad_norms.append(np.mean(epoch_grad_norms))
+
         if mitigation_on:
             scheduler.step()
 
