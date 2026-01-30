@@ -139,11 +139,11 @@ def train_model(model, train_loader, val_loader, device, num_epochs=100, learnin
             
             train_loss += loss.item()
 
-            if batch_idx % 10 == 0:
-                print(
-                    f"  batch {batch_idx + 1}/{len(train_loader)} "
-                    f"| loss={loss.item():.4f} | grad_norm={grad_norm.item():.2e}"
-                )
+            # if batch_idx % 10 == 0:
+            #     print(
+            #         f"  batch {batch_idx + 1}/{len(train_loader)} "
+            #         f"| loss={loss.item():.4f} | grad_norm={grad_norm.item():.2e}"
+            #     )
 
         last_10_grads = epoch_grad_norms[-10:]
         train_loss /= len(train_loader)

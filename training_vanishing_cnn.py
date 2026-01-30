@@ -300,41 +300,41 @@ if __name__ == "__main__":
     print(f"Device: {device}")
 
     experiments = [
-        {
-            "name": "cnn_sigmoid_no_mitigation",
-            "model_class": VanishingCNN,
-            "model_kwargs": {
-                "num_conv_layers": 20,
-                "base_channels": 16,
-                "num_classes": 10,
-                "init_method": "small",
-            },
-            "train_kwargs": {
-                "learning_rate": 0.01,
-                "gradient_clip": None,
-                "weight_decay": 0.0,
-            },
-            "model_type": "cnn",
-            "mitigation": "no_mitigation",
-        },
-        # Uncomment below to run the mitigation experiments
         # {
-        #     "name": "cnn_residual_he",
-        #     "model_class": ResidualCNN,
+        #     "name": "cnn_sigmoid_no_mitigation",
+        #     "model_class": VanishingCNN,
         #     "model_kwargs": {
-        #         "num_blocks": 6,
-        #         "base_channels": 32,
+        #         "num_conv_layers": 20,
+        #         "base_channels": 16,
         #         "num_classes": 10,
-        #         "init_method": "he",
+        #         "init_method": "small",
         #     },
         #     "train_kwargs": {
         #         "learning_rate": 0.01,
         #         "gradient_clip": None,
-        #         "weight_decay": 1e-4,
+        #         "weight_decay": 0.0,
         #     },
-        #     "model_type": "cnn_residual",
-        #     "mitigation": "residual_he",
+        #     "model_type": "cnn",
+        #     "mitigation": "no_mitigation",
         # },
+        # Uncomment below to run the mitigation experiments
+        {
+            "name": "cnn_residual_he",
+            "model_class": ResidualCNN,
+            "model_kwargs": {
+                "num_blocks": 6,
+                "base_channels": 32,
+                "num_classes": 10,
+                "init_method": "he",
+            },
+            "train_kwargs": {
+                "learning_rate": 0.01,
+                "gradient_clip": None,
+                "weight_decay": 1e-4,
+            },
+            "model_type": "cnn_residual",
+            "mitigation": "residual_he",
+        },
     ]
 
     for exp in experiments:
