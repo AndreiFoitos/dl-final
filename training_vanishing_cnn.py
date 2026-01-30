@@ -351,7 +351,7 @@ if __name__ == "__main__":
             model,
             train_loader,
             device,
-            num_epochs=5,
+            num_epochs=10,
             model_type=exp["model_type"],
             **exp["train_kwargs"],
         )
