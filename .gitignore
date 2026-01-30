@@ -1,18 +1,16 @@
-# ======================
 # Virtual environments
-# ======================
 dl/
 
-
-# ======================
 # Data files
-# ======================
 data/cifar-10-batches-py/
 data/preprocessed/
 data/cifar-10-python.tar.gz
+
+# Old RNN implementation
 old-rnn/
 
-# ======================
+# Plots
+plots/
+
 # pychache
-# ======================
 __pycache__/
